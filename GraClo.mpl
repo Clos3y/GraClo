@@ -14,7 +14,7 @@ SYM := proc(condition::list,tenss);
 local perms := [],p,l,k,base,ind;
 
 #These extract the base and indices from the tensor.
-base := cat(seq(parse(convert(tenss,string)[i]),i=1...StringTools:-Search("[",convert(tenss,string)) - 1)):
+base := map2(op,0,tenss):
 ind := op(tenss):
 
 #Permutes the conditions
@@ -49,7 +49,7 @@ ASYM := proc(condition::list,tenss);
 local perms := [],p,l,k,base,ind;
 
 #Extracts the base and indices
-base := cat(seq(parse(convert(tenss,string)[i]),i=1...StringTools:-Search("[",convert(tenss,string)) - 1)):
+base := map2(op,0,tenss):
 ind := op(tenss):
 
 for p in combinat:-permute(condition) do:
@@ -76,10 +76,10 @@ end proc:
 
 #This finds the independent components given a tensor, tenss, some equations, basisEquations, and a dimension, dim
 
-IndependentComponents := proc(tenss,basisEquations::list,dim::posint)
+IndependentComponents := proc(tenss,basisEquations::list,dim::posint,startdim::integer:=0)
 local sol:=[],dummyList:=[],base,ind,rank,k,perm,i,solutions,depList,subCond,finalEquationList;
 
-base := cat(seq(parse(convert(tenss,string)[i]),i=1...StringTools:-Search("[",convert(tenss,string)) - 1)):
+base := map2(op,0,tenss):
 ind := op(tenss):
 rank := nops([ind]):
 
@@ -105,7 +105,7 @@ for k from 0 to (dim^rank - 1) do:
 
  else end if:
 
-
+perm[k] := perm[k] +~ startdim;
  dummyList := [op(dummyList),[perm[k]]]:
 
 
@@ -121,14 +121,14 @@ if lhs(i) = rhs(i) then solutions:=[op(solutions),lhs(i)] else depList :=[op(dep
 od:
 end if:
 
-return solutions;
+return [seq(`if`(map2(op,0,solutions[i])=base,solutions[i],NULL),i=1..nops(solutions))];
 end proc;
 
 #Essentially just 'nops' the previous function
-NumberOfIndependentComponents := proc(tenss,basisEquations::list,dim::posint)
+NumberOfIndependentComponents := proc(tenss,basisEquations::list,dim::posint,startdim::integer:=0)
 local sol:=[],dummyList:=[],base,ind,rank,k,perm,i,solutions,depList,subCond,finalEquationList;
 
-base := cat(seq(parse(convert(tenss,string)[i]),i=1...StringTools:-Search("[",convert(tenss,string)) - 1)):
+base := map2(op,0,tenss):
 ind := op(tenss):
 rank := nops([ind]):
 
@@ -152,7 +152,7 @@ for k from 0 to (dim^rank - 1) do:
 
  else end if:
 
-
+perm[k] := perm[k] +~ startdim;
  dummyList := [op(dummyList),[perm[k]]]:
 
 
@@ -168,15 +168,14 @@ if lhs(i) = rhs(i) then solutions:=[op(solutions),lhs(i)] else depList :=[op(dep
 od:
 end if:
 
-return nops(solutions);
+return nops([seq(`if`(map2(op,0,solutions[i])=base,solutions[i],NULL),i=1..nops(solutions))]);
 end proc;
 
-#This takes those components who are not zero, nor are they independent, and finds expressions for them
+#This takes those components that are not zero, nor are they independent, and finds expressions for them
 
-Equations := proc(tenss,basisEquations::list,dim::posint)
+Equations := proc(tenss,basisEquations::list,dim,startdim::integer:=0)
 local sol:=[],dummyList:=[],base,ind,rank,k,perm,i,solutions,depList,subCond,finalEquationList,deps;
-
-base := cat(seq(parse(convert(tenss,string)[i]),i=1...StringTools:-Search("[",convert(tenss,string)) - 1)):
+base := map2(op,0,tenss):
 ind := op(tenss):
 rank := nops([ind]):
 
@@ -184,7 +183,6 @@ for k from 0 to (dim^rank - 1) do:
 
 
  perm[k] := op(ListTools:-Reverse(convert(k,'base',dim))):
-
 
  if numelems([perm[k]]) < rank then
 
@@ -197,12 +195,12 @@ for k from 0 to (dim^rank - 1) do:
 
   od:
 
-
  else end if:
 
+perm[k] := perm[k] +~ startdim;
 
  dummyList := [op(dummyList),[perm[k]]]:
-
+ 
 
 od: 
 
@@ -218,7 +216,7 @@ end if:
 
 deps := op(solve(finalEquationList,depList)):
 depList := [seq(`if`(rhs(deps[i])=0,NULL,deps[i]),i=1...nops(deps))]:
-return depList;
+return [seq(`if`(map2(op,0,lhs(depList[i]))=base,depList[i],NULL),i=1..nops(depList))];
 
 end proc;
 
