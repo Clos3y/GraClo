@@ -13,8 +13,6 @@ Please refer to the Documentation.pdf for more details.
 
 # Limitations
 * Cannot work with ODEs or PDEs
-* Cannot work with multiple, different tensors
-* The dimension must be two or higher
 * The code determining the oscillating sum for the ASYM command is 'unstable'. It relies on the way Maple orders terms. If that were to be changed, then I believe it would break
 * There is no way to work explicitly with covariant and contravariant indices.
 * It cannot work with components explicitly stated as functions as Maple seems to always try to solve for the independent variable, even when it is specified not to.
