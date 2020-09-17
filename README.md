@@ -7,7 +7,7 @@ Please refer to the Documentation.pdf for more details.
 1. Download the GraClo.mpl file
 2. Save it to your working Maple directory
 3. Load it into Maple by using
-  read("GraClo.mpl");
+  read("GraClo vN.mpl"); where N is the version number
 4. Load the module with
   with(GraClo);
 
