@@ -1,7 +1,7 @@
 # GraClo
 A Maple package for finding the independent components of a given tensor, and corresponding equations.
 
-Please refer to the Documentation.pdf for more details.
+Please refer to the Documentation_v01.pdf for more details.
 
 # Installation
 1. Download the GraClo.mpl file
