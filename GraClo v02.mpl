@@ -70,7 +70,7 @@ perms := [op(perms),convert(p,list)];
 
 od:
 
-return (1/nops(perms))*add(`if`(i mod 4 < 2,base[op(perms[i])],-1*base[op(perms[i])]),i=1...nops(perms));
+return (1/nops(perms))*add(GroupTheory:-PermParity(Perm([seq(ListTools:-Search(s,[ind]),s in perms[i])]))*base[op(perms[i])],i=1...nops(perms));
 
 end proc:
 
