@@ -9,8 +9,7 @@ GraClo := module()
 
    #This packages the module
    option package;
-
-   SYM := proc(condition::list,tenss);
+SYM := proc(condition::list,tenss)
 
       #Symmetrises a tensor given a set of indices to perform the sum over
 
@@ -48,7 +47,10 @@ GraClo := module()
 
    end proc:
 
-   ASYM := proc(condition::list,tenss);
+###################################################
+
+
+   ASYM := proc(condition::list,tenss)
 
    #Antisymmetrises a tensor given a set of indices to perform the sum over
    
@@ -84,38 +86,23 @@ GraClo := module()
 
    end proc:
 
-   IndependentComponents := proc(tenss,basisEquations::list,dim::posint,startdim::integer:=0);
+###################################################
+
+
+   IndependentComponents := proc(bases,ind,basisEquations::list,dim::posint,startdim::integer:=0)
 
       #Find the independent components of a tensor given some equations defining its behaviour, and a dimension. One may optionally change the starting index
       
       #Initialises the local variables
-      local sol:=[],dummyList:=[],base,ind,rank,k,perm,i,solutions,depList,subCond,finalEquationList;
+      local sol:=[],dummyList:=[],rank,k,m,perm,i,solutions,depList,subCond,finalEquationList;
 
-      #These extract the base, indices and rank from the tensor. I can't yet find a better way to do this
-      base := map2(op,0,tenss):
-      ind := op(tenss):
-      rank := nops([ind]):
-
-      #Creates the permuted list of all numbered elements (i.e., [0,0,0],[0,0,1],[0,0,2]...)
+      rank := numelems(ind):
 
       for k from 0 to (dim^rank - 1) do:
-
-         perm[k] := op(ListTools:-Reverse(convert(k,'base',dim))):
-
-         if numelems([perm[k]]) < rank then
-
-            for i from 1 to (rank - numelems([perm[k]])) do:
-
-               perm[k] := 0,perm[k]
-
-            od:
-
-         else end if:
-
-         perm[k] := perm[k] +~ startdim;
-
-         dummyList := [op(dummyList),[perm[k]]]:
-
+         perm := ListTools:-Reverse(convert(k,'base',dim)):
+         perm := [seq(0,i=1..rank-numelems(perm)),op(perm)] ;
+         perm := map('i->i+startdim',perm) ;
+         dummyList := [op(dummyList),perm]:
       od: 
 
       #Solves the equations for the independent components
@@ -123,68 +110,59 @@ GraClo := module()
       solutions := []:
       depList := []:
 
-      if nops(basisEquations) = 0 then solutions := [seq(base[op(op(dummyList)[m])],m=1...numelems(dummyList))] else subCond := [seq(ind =~ dummyList[i],i=1..numelems(dummyList))]:
+      if nops(basisEquations) = 0 then 
+         solutions := [seq(seq(bases[i][op(op(dummyList)[m])],m=1...numelems(dummyList)),i=1..numelems(bases))] 
+      else 
+         subCond := [seq(map~('(a,b)->a=b',ind,dummyList[i]),i=1..numelems(dummyList))] ; 
 
-      finalEquationList := ListTools:-MakeUnique(map(op,[seq(`if`(subs(subCond[i],basisEquations) = [0=0],NULL,subs(subCond[i],basisEquations)),i=1...numelems(subCond))])):
+         finalEquationList := ListTools:-MakeUnique(map(op,[seq(`if`(subs(subCond[i],basisEquations) = [0=0],NULL,subs(subCond[i],basisEquations)),i=1...numelems(subCond))])):
       
       for i in solve(finalEquationList,maxsols=infinity) do:
       
          if lhs(i) = rhs(i) then solutions:=[op(solutions),lhs(i)] else depList :=[op(depList),lhs(i)] end if;
       
-      od:
+     od:
    
    end if:
 
-   return [seq(`if`(map2(op,0,solutions[i])=base,solutions[i],NULL),i=1..nops(solutions))];
-   
+   return [seq(`if`(map2(op,0,solutions[i]) in bases,solutions[i],NULL),i=1..nops(solutions))];
+  
    end proc;
 
-   NumberOfIndependentComponents := proc(tenss,basisEquations::list,dim::posint,startdim::integer:=0)
+   NumberOfIndependentComponents := proc(bases,ind,basisEquations::list,dim::posint,startdim::integer:=0)
 
       #Returns the number of independent components of a tensor, given some equations describing its behaviour and dimension
 
-      return nops(IndependentComponents(tenss,basisEquations,dim,startdim))
+      return nops(IndependentComponents(bases,ind,basisEquations,dim,startdim))
 
    end proc;
 
-   Equations := proc(tenss,basisEquations::list,dim,startdim::integer:=0);
+##############################
+
+   Equations := proc(bases,ind,basisEquations::list,dim,startdim::integer:=0)
 
    #This takes those components that are not zero, nor are they independent, and finds expressions for them
 
       #Initialises the local variables
-      local sol:=[],dummyList:=[],base,ind,rank,k,perm,i,solutions,depList,subCond,finalEquationList,deps;
+      local sol:=[],dummyList:=[],rank,k,perm,i,solutions,depList,subCond,finalEquationList,deps;
 
-      #These extract the base, indices and rank from the tensor. I can't yet find a better way to do this
-      base := map2(op,0,tenss):
-      ind := op(tenss):
-      rank := nops([ind]):
+      rank := numelems(ind):
 
       for k from 0 to (dim^rank - 1) do:
-
-         perm[k] := op(ListTools:-Reverse(convert(k,'base',dim))):
-
-         if numelems([perm[k]]) < rank then
-
-            for i from 1 to (rank - numelems([perm[k]])) do:
-
-               perm[k] := 0,perm[k]
-
-            od:
-
-         else end if:
-
-         perm[k] := perm[k] +~ startdim;
-
-         dummyList := [op(dummyList),[perm[k]]]:
-      
+         perm := ListTools:-Reverse(convert(k,'base',dim)):
+         perm := [seq(0,i=1..rank-numelems(perm)),op(perm)] ;
+         perm := map('i->i+startdim',perm) ;
+         dummyList := [op(dummyList),perm]:
       od: 
 
       solutions := []:
       depList := []:
 
-      if nops(basisEquations) = 0 then solutions := [seq(base[op(op(dummyList)[m])],m=1...numelems(dummyList))] else subCond := [seq(ind =~ dummyList[i],i=1..numelems(dummyList))]:
+      if nops(basisEquations) = 0 then return ([]) end if; 
+      if nops(basisEquations) <> 0 then 
+         subCond := [seq(map~('(a,b)->a=b',ind,dummyList[i]),i=1..numelems(dummyList))] ; 
 
-         finalEquationList := ListTools:-MakeUnique(map(op,[seq(`if`(subs(subCond[i],basisEquations) = [0=0],NULL,subs(subCond[i],basisEquations)),i=1...numelems(subCond))])):
+         finalEquationList := ListTools:-MakeUnique(map(op,[seq(`if`(subs(subCond[i],basisEquations) = [0=0],NULL,subs(subCond[i],basisEquations)),i=1...numelems(subCond))])): print(finalEquationList) ;
       
          for i in solve(finalEquationList,maxsols=infinity) do:
 
@@ -197,8 +175,10 @@ GraClo := module()
       deps := op(solve(finalEquationList,depList)):
       depList := [seq(`if`(rhs(deps[i])=0,NULL,deps[i]),i=1...nops(deps))]:
 
-      return [seq(`if`(map2(op,0,lhs(depList[i]))=base,depList[i],NULL),i=1..nops(depList))];
+      return [seq(`if`(map2(op,0,lhs(depList[i])) in bases,depList[i],NULL),i=1..nops(depList))];
 
    end proc;
+
+##############################
 
 end module:
