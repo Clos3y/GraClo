@@ -12,7 +12,5 @@ Please refer to the Documentation_v01.pdf for more details.
   with(GraClo);
 
 # Limitations
-* Cannot work with ODEs or PDEs (maybe?)
-* ASYM and SYM cannot permute over the same indicies (e.g., SYM([a,a],Psi[a,a,b]) would cause an error).
 * There is no way to work explicitly with covariant and contravariant indices.
 * It cannot work with components explicitly stated as functions as Maple seems to always try to solve for the independent variable, even when it is specified not to.
