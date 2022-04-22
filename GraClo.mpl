@@ -1,160 +1,136 @@
 GraClo := module()
 
-   description "A module for finding the independent components and corresponding dependent components (with dependence) given a set of equations.";
-
-   #v2.1
+   description "A module for finding the independent components and corresponding dependent components (with dependence) given a set of equations.":
 
    # These are the functions accessible outside of the module
-   export IndependentComponents,NumberOfIndependentComponents,Equations,SYM,ASYM;
+   export IndependentComponents,NumberOfIndependentComponents,ComponentRelationships,SYM,ASYM:
 
    #This packages the module
-   option package;
+   option package:
 
-   permuter := proc(condition::list,tensor)::Array:
+   local permuter := proc(condition::list,tensor)::Array:
 
-      options remember,threadsafe;
+      options remember,threadsafe:
 
-      uses combinat,ArrayTools;
+      uses combinat,ArrayTools:
 
       #Initialises the local variables
-      local ind :: exprseq := op(tensor);
+      local indices :: exprseq := op(tensor):
 
-      local permutations :: Array := Array(map(convert,permute(condition),Array),datatype=Array);
+      local permutations :: Array := Array(map(convert,permute(condition),Array),datatype=Array):
 
       #If the index appears in the tensor, then it is ignored. Else, it is added in the correct, previous position
-      for local l,k in ind do:
-       map[inplace](i -> `if`(member(k,condition),i,Insert(i,l,k)),permutations);
+      for local l,k in indices do:
+       map[inplace](i -> `if`(member(k,condition),i,Insert(i,l,k)),permutations):
       od:
 
-      return permutations;
+      return permutations:
 
-   end proc;
+   end proc:
 
-   SYM := proc(condition::list,tensor)::`+`;
+   SYM := proc(condition::list,tensor)::`+`:
 
-      description "Computes the symmetric sum over the specified indices";
+      description "Computes the symmetric sum over the specified indices":
 
-      options remember,threadsafe;
+      local i :: posint:
 
-      uses combinat;
+      options remember,threadsafe:
 
-      local base :: symbol := map2(op,0,tensor);
+      uses combinat:
+
+      local base :: symbol := map2(op,0,tensor):
      
-      local permutations := permuter(condition,tensor);
+      local permutations := permuter(condition,tensor):
 
-      local n_perm :: posint := numbperm(condition);
+      local n_perm :: posint := numbperm(condition):
          #Returns the symmetric sum
-       return (1/n_perm)*add(base[op(convert(permutations[i],list))],i=1...n_perm);
+       return (1/n_perm)*add(base[op(convert(permutations[i],list))],i=1...n_perm):
 
    end proc:
 
-   ASYM := proc(condition::list,tensor)::`+`;
+   ASYM := proc(condition::list,tensor)::`+`:
 
-      description "Computes the antisymmetric sum over the specified indices";
+      description "Computes the antisymmetric sum over the specified indices":
 
-      options remember,threadsafe;
+      options remember,threadsafe:
 
-      uses combinat,GroupTheory;
+      uses combinat,GroupTheory:
 
-      local base :: symbol := map2(op,0,tensor);
+      local i :: posint:
+
+      local base :: symbol := map2(op,0,tensor):
      
-      local permutations :: Array := permuter(condition,tensor);
+      local permutations :: Array := permuter(condition,tensor):
 
-      local n_perm :: posint := numbperm(condition);
+      local n_perm :: posint := numbperm(condition):
 
-      local signs :: list := map(PermParity,map(Perm,permute(nops(tensor))));
+      local signs :: list := map(PermParity,map(Perm,permute(nops(tensor)))):
 
-     return (1/n_perm)*add(signs[i]*base[op(convert(permutations[i],list))],i=1...n_perm);
+     return (1/n_perm)*add(signs[i]*base[op(convert(permutations[i],list))],i=1...n_perm):
 
    end proc:
 
-   IndependentComponents := proc(tenss,basisEquations::list,dim::posint,startdim::integer:=0)::list;
+   local ComponentSolver := proc(tensor,dim::posint:=4,{equations := NULL,startdim::integer:=0})::list:
+      option remember,threadsafe:
 
-      description "Find the independent components of a tensor given some equations defining its behaviour, and a dimension. One may optionally change the starting index";
+      local base := map2(op,0,tensor), indices := op(tensor), rank := nops(tensor):
 
-      option remember,threadsafe;
-
-      uses ListTools;
-
-      #Initialises the local variables
-      local sol:=[],dummyList:=[],base,ind,rank,k,perm,i,solutions,depList,subCond,finalEquationList;
-
-      #These extract the base, indices and rank from the tensor. I can't yet find a better way to do this
-      base := map2(op,0,tenss):
-      ind := op(tenss):
-      rank := nops([ind]):
+      local i :: integer, m::posint,r::posint:
 
       #Creates the permuted list of all numbered elements (i.e., [0,0,0],[0,0,1],[0,0,2]...)
-      dummyList := [seq([seq(iquo(i,dim^r) mod dim^r,r=(rank-1)..1,-1),irem(i,dim)],i=0..(dim^(rank) - 1))];
+      local numbers_list := [seq([seq(iquo(i,dim^r) mod dim,r=(rank-1)..1,-1),irem(i,dim)],i=0..(dim^(rank) - 1))]:
 
-      #Solves the equations for the independent components
-      solutions := []:
-      depList := []:
+      local total_perms :: posint := dim^rank:
+      #Solves the equations
+      local all_components :=seq(base[op(op(numbers_list)[m])],m=1...total_perms);
 
-      if nops(basisEquations) = 0 then solutions := [seq(base[op(op(dummyList)[m])],m=1...numelems(dummyList))] else subCond := [seq(ind =~ dummyList[i],i=1..numelems(dummyList))]:
+      if equations = NULL then:
+        return [all_components]:
+      else: 
+      	local substituted_conditions := [seq(indices =~ numbers_list[i],i=1..total_perms)]:
 
-      finalEquationList := MakeUnique(map(op,[seq(`if`(subs(subCond[i],basisEquations) = [0=0],NULL,subs(subCond[i],basisEquations)),i=1...numelems(subCond))])):
-      
-      for i in solve(finalEquationList,maxsols=infinity) do:
-      
-         if lhs(i) = rhs(i) then solutions:=[op(solutions),lhs(i)] else depList :=[op(depList),lhs(i)] end if;
-      
-      od:
-   
-   end if:
-
-   return [seq(`if`(map2(op,0,solutions[i])=base,solutions[i],NULL),i=1..nops(solutions))];
-   
-   end proc;
-
-   NumberOfIndependentComponents := proc(tenss,basisEquations::list,dim::posint,startdim::integer:=0)::integer;
-
-      description "Returns the number of independent components of a tensor, given some equations describing its behaviour and dimension";
-
-      option remember,threadsafe;
-
-      return nops(IndependentComponents(tenss,basisEquations,dim,startdim))
-
-   end proc;
-
-   Equations := proc(tenss,basisEquations::list,dim,startdim::integer:=0)::list;
-
-   description "This takes those components that are not zero, nor are they independent, and finds expressions for them";
-
-   option remember,threadsafe;
-
-   uses ListTools;
-
-      #Initialises the local variables
-      local sol:=[],dummyList:=[],base,ind,rank,k,perm,i,solutions,depList,subCond,finalEquationList,deps;
-
-      #These extract the base, indices and rank from the tensor. I can't yet find a better way to do this
-      base := map2(op,0,tenss):
-      ind := op(tenss):
-      rank := nops([ind]):
-
-      dummyList := [seq([seq(iquo(i,dim^r) mod dim^r,r=(rank-1)..1,-1),irem(i,dim)],i=0..(dim^(rank) - 1))];
-
-      solutions := []:
-      depList := []:
-
-      if nops(basisEquations) = 0 then solutions := [seq(base[op(op(dummyList)[m])],m=1...numelems(dummyList))] else subCond := [seq(ind =~ dummyList[i],i=1..numelems(dummyList))]:
-
-         finalEquationList := MakeUnique(map(op,[seq(`if`(subs(subCond[i],basisEquations) = [0=0],NULL,subs(subCond[i],basisEquations)),i=1...numelems(subCond))])):
-      
-         for i in solve(finalEquationList,maxsols=infinity) do:
-
-            if lhs(i) = rhs(i) then solutions:=[op(solutions),lhs(i)] else depList :=[op(depList),lhs(i)] end if;
-
-         od:
+	local solutions := map(x -> subs(x,equations),substituted_conditions):
+	solutions := map(op,solutions):
+	solutions := solve(solutions,[all_components],maxsols=infinity):
+	print(select(member,R[3,2,1,0],op(solutions)));
+	return op(solutions): 
 
       end if:
 
-      deps := op(solve(finalEquationList,depList)):
-      depList := [seq(`if`(rhs(deps[i])=0,NULL,deps[i]),i=1...nops(deps))]:
+   end proc:
 
-      return [seq(`if`(map2(op,0,lhs(depList[i]))=base,depList[i],NULL),i=1..nops(depList))];
+   IndependentComponents := proc(tensor,dim::posint:=4,{equations := NULL,startdim::integer:=0})::set:
 
-   end proc;
+      description "Find the independent components of a tensor given some equations defining its behaviour, and a dimension. One may optionally change the starting index":
+
+      option remember,threadsafe:
+
+      local solutions := ComponentSolver(tensor,dim,':-equations'=equations,':-startdim'=startdim):
+
+      return map(lhs,select(is,solutions)):
+   
+   end proc:
+
+   NumberOfIndependentComponents := proc(tensor,dim::posint:=4,{equations := NULL,startdim::integer:=0})::integer:
+
+      description "Returns the number of independent components of a tensor, given some equations describing its behaviour and dimension":
+
+      option remember,threadsafe:
+
+      return nops(IndependentComponents(tensor,dim,':-equations'=equations,':-startdim'=startdim)):
+
+   end proc:
+
+   ComponentRelationships := proc(tensor,dim::posint:=4,{equations := NULL,startdim::integer:=0})::set:
+
+      description "Find the independent components of a tensor given some equations defining its behaviour, and a dimension. One may optionally change the starting index":
+
+      option remember,threadsafe:
+
+      local solutions := ComponentSolver(tensor,dim,':-equations'=equations,':-startdim'=startdim):
+
+      return remove(is,solutions):
+   
+   end proc:
 
 end module:
