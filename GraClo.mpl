@@ -10,79 +10,61 @@ GraClo := module()
    #This packages the module
    option package;
 
-   SYM := proc(condition::list,tenss)::`+`;
+   permuter := proc(condition::list,tensor)::Array:
+
+      options remember,threadsafe;
+
+      uses combinat,ArrayTools;
+
+      #Initialises the local variables
+      local ind :: exprseq := op(tensor);
+
+      local permutations :: Array := Array(map(convert,permute(condition),Array),datatype=Array);
+
+      #If the index appears in the tensor, then it is ignored. Else, it is added in the correct, previous position
+      for local l,k in ind do:
+       map[inplace](i -> `if`(member(k,condition),i,Insert(i,l,k)),permutations);
+      od:
+
+      return permutations;
+
+   end proc;
+
+   SYM := proc(condition::list,tensor)::`+`;
 
       description "Computes the symmetric sum over the specified indices";
 
-      options remember;
+      options remember,threadsafe;
 
-      #Initialises the local variables
-      local perms := [],p,l,k,base,ind;
+      uses combinat;
 
-      #These extract the base and indices from the tensor. I can't yet find a better way to do this
-      base := map2(op,0,tenss):
-      ind := op(tenss):
+      local base :: symbol := map2(op,0,tensor);
+     
+      local permutations := permuter(condition,tensor);
 
-      #Permutes the conditions
-      for p in combinat:-permute(condition) do:
-
-         #Necessary conversion for member insertion
-         p := convert(p,Array):
- 
-         #If the index appears in the tensor, then it is ignored. Else, it is added in the correct, previous position
-         for l,k in ind do:
-
-            if member(k,condition) then else 
-
-               p := ArrayTools:-Insert(p,l,ind[l]);
-   
-            end if;
-
-         od:
-
-      #The list of permuted indices
-      perms := [op(perms),convert(p,list)];
-
-      od:
-   
-   #Returns the symmetric sum
-   return (1/nops(perms))*add(base[op(perms[i])],i=1...nops(perms));
+      local n_perm :: posint := numbperm(condition);
+         #Returns the symmetric sum
+       return (1/n_perm)*add(base[op(convert(permutations[i],list))],i=1...n_perm);
 
    end proc:
 
-   ASYM := proc(condition::list,tenss)::`+`;
+   ASYM := proc(condition::list,tensor)::`+`;
 
-   #Antisymmetrises a tensor given a set of indices to perform the sum over
-   
-   #Initialises the local variables
-   local perms := [],p,l,k,base,ind;
+      description "Computes the antisymmetric sum over the specified indices";
 
-   #These extract the base and indices from the tensor. I can't yet find a better way to do this
-   base := map2(op,0,tenss):
-   ind := op(tenss):
-   
-   #Permutes the conditions
-   for p in combinat:-permute(condition) do:
-      
-      #Necessary conversion for member insertion
-      p := convert(p,Array):
-      
-      #If the index appears in the tensor, then it is ignored. Else, it is added in the correct, previous position
-      for l,k in ind do:
+      options remember,threadsafe;
 
-         if member(k,condition) then else 
+      uses combinat,GroupTheory;
 
-         p := ArrayTools:-Insert(p,l,ind[l]);
-   
-         end if;
+      local base :: symbol := map2(op,0,tensor);
+     
+      local permutations :: Array := permuter(condition,tensor);
 
-      od:
+      local n_perm :: posint := numbperm(condition);
 
-      perms := [op(perms),convert(p,list)];
+      local signs :: list := map(PermParity,map(Perm,permute(nops(tensor))));
 
-   od:
-
-   return (1/nops(perms))*add(GroupTheory:-PermParity(Perm([seq(ListTools:-Search(s,[ind]),s in perms[i])]))*base[op(perms[i])],i=1...nops(perms));
+     return (1/n_perm)*add(signs[i]*base[op(convert(permutations[i],list))],i=1...n_perm);
 
    end proc:
 
@@ -90,7 +72,7 @@ GraClo := module()
 
       description "Find the independent components of a tensor given some equations defining its behaviour, and a dimension. One may optionally change the starting index";
 
-      option remember;
+      option remember,threadsafe;
 
       uses ListTools;
 
@@ -129,7 +111,7 @@ GraClo := module()
 
       description "Returns the number of independent components of a tensor, given some equations describing its behaviour and dimension";
 
-      option remember;
+      option remember,threadsafe;
 
       return nops(IndependentComponents(tenss,basisEquations,dim,startdim))
 
@@ -139,7 +121,7 @@ GraClo := module()
 
    description "This takes those components that are not zero, nor are they independent, and finds expressions for them";
 
-   option remember;
+   option remember,threadsafe;
 
    uses ListTools;
 
