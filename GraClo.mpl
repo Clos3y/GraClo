@@ -103,29 +103,9 @@ GraClo := module()
       rank := nops([ind]):
 
       #Creates the permuted list of all numbered elements (i.e., [0,0,0],[0,0,1],[0,0,2]...)
-
-      for k from 0 to (dim^rank - 1) do:
-
-         perm[k] := op(Reverse(convert(k,'base',dim))):
-
-         if numelems([perm[k]]) < rank then
-
-            for i from 1 to (rank - numelems([perm[k]])) do:
-
-               perm[k] := 0,perm[k]
-
-            od:
-
-         else end if:
-
-         perm[k] := perm[k] +~ startdim;
-
-         dummyList := [op(dummyList),[perm[k]]]:
-
-      od: 
+      dummyList := [seq([seq(iquo(i,dim^r) mod dim^r,r=(rank-1)..1,-1),irem(i,dim)],i=0..(dim^(rank) - 1))];
 
       #Solves the equations for the independent components
-
       solutions := []:
       depList := []:
 
@@ -171,25 +151,7 @@ GraClo := module()
       ind := op(tenss):
       rank := nops([ind]):
 
-      for k from 0 to (dim^rank - 1) do:
-
-         perm[k] := op(Reverse(convert(k,'base',dim))):
-
-         if numelems([perm[k]]) < rank then
-
-            for i from 1 to (rank - numelems([perm[k]])) do:
-
-               perm[k] := 0,perm[k]
-
-            od:
-
-         else end if:
-
-         perm[k] := perm[k] +~ startdim;
-
-         dummyList := [op(dummyList),[perm[k]]]:
-      
-      od: 
+      dummyList := [seq([seq(iquo(i,dim^r) mod dim^r,r=(rank-1)..1,-1),irem(i,dim)],i=0..(dim^(rank) - 1))];
 
       solutions := []:
       depList := []:
