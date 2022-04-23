@@ -78,7 +78,7 @@ GraClo := module()
       local i :: integer, m::posint,r::posint:
 
       #Creates the permuted list of all numbered elements (i.e., [0,0,0],[0,0,1],[0,0,2]...)
-      local numbers_list := [seq([seq(iquo(i,dim^r) mod dim,r=(rank-1)..1,-1),irem(i,dim)],i=0..(dim^(rank) - 1))]:
+      local numbers_list := [seq([seq((iquo(i,dim^r) mod dim) + startdim,r=(rank-1)..1,-1),irem(i,dim) + startdim],i=0..(dim^(rank) - 1  ))]:
 
       local total_perms :: posint := dim^rank:
       #Solves the equations
@@ -92,7 +92,6 @@ GraClo := module()
 	local solutions := map(x -> subs(x,equations),substituted_conditions):
 	solutions := map(op,solutions):
 	solutions := solve(solutions,[all_components],maxsols=infinity):
-	print(select(member,R[3,2,1,0],op(solutions)));
 	return op(solutions): 
 
       end if:

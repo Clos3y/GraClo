@@ -1,264 +1,181 @@
 \documentclass{article}
-\usepackage[margin=1in]{geometry}
+%\usepackage[margin=1in]{geometry}
 \usepackage{amsmath}
-\usepackage{url}
 \usepackage{hyperref}
+\usepackage{physics}
+\usepackage{tensor}
+\usepackage{doc}
+\CodelineNumbered
 
-\title{\verb~GraClo~ Module Documentation 02}
-\author{Sam Close \\ \href{mailto:s.close@lancaster.ac.uk}{s.close@lancaster.ac.uk}}
+\hypersetup{colorlinks}
+\DeclareMathOperator{\sign}{sign}
+\title{\verb~GraClo~ Module Documentation}
+\author{Sam Close \\ \href{mailto:sam.w.close@gmail.com}{sam.w.close@gmail.com}}
 
-\date{\today}
+%\date{\today}
 
 \begin{document}
 
 \maketitle
+\tableofcontents
 
-\section*{General Usage}
+\section{Ancillary Procedures}
+These procedures are not a core part of the code, but are provided for making life easier when entering arguments for core procedures.
+\begin{macro}{SYM} 
+\verb~SYM~ is a procedure for creating a sum of permutations (symmetrising) of an indexed object. For an indexed object $\tensor{T}{_{i_1}_{i_2}_\cdots_{i_n}}$, the symmetric operation is denoted with parentheses around the symmetric indices as
+\[
+\tensor{T}{_{(}_{i_1}_{i_2}_\cdots_{i_n}_{)}}: = \frac{1}{n!} \sum_{k=1}^n \tensor{T}{_{\sigma_k (n)}}
+\]
+where $\sigma_k(n)$ is the $k$th permutation of $n$ indices. For instance, consider $\tensor{T}{_i_{(}_j_k_l_{)}}$:
+\[
+\tensor{T}{_i_{(}_j_k_l_{)}} = \frac{1}{6} \pqty{ \tensor{T}{_i_j_k_l} + \tensor{T}{_i_k_l_j} + \tensor{T}{_i_l_j_k} + \tensor{T}{_i_j_l_k} + \tensor{T}{_i_k_j_l} + \tensor{T}{_i_l_k_j}}.
+\]
+\verb~SYM~ takes two arguments: the indices over which to do the symmetrisation as a list, and the indexed object in question, and returns the sum (type \verb~`+`~). For example, considering the above object:
+\newline\rule{1.0\linewidth}{0.4pt}
+\begin{verbatim}
+> SYM([j,k,l],T[i,j,k,l]);
+\end{verbatim}
+\[
+{ \frac{\tensor{T}{_{i,}_{j,}_{k,}_l}}{6} + \frac{\tensor{T}{_{i,}_{j,}_{l,}_k}}{6} + \frac{\tensor{T}{_{i,}_{k,}_{j,}_l}}{6} + \frac{\tensor{T}{_{i,}_{k,}_{l,}_j}}{6} + \frac{\tensor{T}{_{i,}_{l,}_{j,}_k}}{6} + \frac{\tensor{T}{_{i,}_{l,}_{k,}_j}}{6}}.
+\]
+\newline\rule{1.0\linewidth}{0.4pt}
+\end{macro}
 
-This package is for finding the independent components, their number, and equations relating components of a given tensor, and corresponding equations and symmetries, in a certain dimension.
+\begin{macro}{ASYM}
+\verb~ASYM~ is a procedure for creating an alternating sum of permutations (antisymmetrising) of an indexed object. For an indexed object $\tensor{T}{_{i_1}_{i_2}_\cdots_{i_n}}$, the antisymmetric operation is denoted with square brackets around the indices as
+\[
+\tensor{T}{_{[}_{i_1}_{i_2}_{\cdots}_{i_n}_{]}} := \frac{1}{n!} \sum_{k=1}^n \sign(\sigma_k(n)) \tensor{T}{_{\sigma_k(n)}}
+\]
+where $\sigma_k(n)$ is the $k$th permutation of $n$ indices, and $\sign$ means the parity of that permutation. For instance, consider $\tensor{T}{_i_{[}_j_k_l_{]}}$:
+\[
+\tensor{T}{_i_{[}_j_k_l_{]}} = \frac{1}{6} \pqty{ \tensor{T}{_i_j_k_l} + \tensor{T}{_i_k_l_j} + \tensor{T}{_i_l_j_k} - \tensor{T}{_i_j_l_k} - \tensor{T}{_i_k_j_l} - \tensor{T}{_i_l_k_j}}.
+\]
+\verb~ASYM~ takes two arguments: the indices over which to do the antisymmetrisation as a list, and the indexed object in question, and returns the alternating sum (type \verb~`+`~).
+\newline\rule{1.0\linewidth}{0.4pt}
+\begin{verbatim}
+> ASYM([j,k,l],T[i,j,k,l]);
+\end{verbatim}
+\[
+{ \frac{\tensor{T}{_{i,}_{j,}_{k,}_l}}{6} - \frac{\tensor{T}{_{i,}_{j,}_{l,}_k}}{6} - \frac{\tensor{T}{_{i,}_{k,}_{j,}_l}}{6} + \frac{\tensor{T}{_{i,}_{k,}_{l,}_j}}{6} + \frac{\tensor{T}{_{i,}_{l,}_{j,}_k}}{6} - \frac{\tensor{T}{_{i,}_{l,}_{k,}_j}}{6}}.
+\]
+\newline\rule{1.0\linewidth}{0.4pt}
+\end{macro}
 
-\subsection*{Installation}
+\section{Primary Procedures}
+\begin{macro}{IndependentComponents}
+\verb~IndependentComponents~ is a procedure for finding the independent components of a given indexed object, in a particular dimension with accompanying equations. It takes one required positional argument: the indexed object; one optional positional argument: the dimension (default: \verb~4~); and two optional arguments: equations (default: \verb~NULL~) and start dimension (default: \verb~0~). It returns a list.
+
+Independent components are components with which one can represent all other components. For instance, in an easy example, consider the metric tensor $\tensor{g}{_\mu_\nu}$ in four-dimensions. It is symmetric, and it is well known to have $10$ independent components.
+\newline\rule{\linewidth}{0.4pt}
+\begin{verbatim}
+> IndependentComponents(g[mu,nu],equations=[g[mu,nu]=g[nu,mu]]);
+\end{verbatim}
+\[
+[g_{0,0}, g_{1,0}, g_{1,1}, g_{2,0}, g_{2,1}, g_{2,2}, g_{3,0}, 
+g_{3,1}, g_{3,2}, g_{3,3}]
+\]
+\newline\rule{\linewidth}{0.4pt}
+The choice of which is independent in this case is somewhat arbitrary, but Maple chooses this order. If one wished to work from $(1-4)$ rather than $(0-3)$:
+ \newline\rule{\linewidth}{0.4pt}
+\begin{verbatim}
+> IndependentComponents(g[mu,nu],equations=[g[mu,nu]=g[nu,mu]],startdim=1);
+\end{verbatim}
+\[
+[g_{1,1}, g_{2,1}, g_{2,2}, g_{3,1}, g_{3,2}, g_{3,3}, g_{4,1}, 
+g_{4,2}, g_{4,3}, g_{4,4}]
+\]
+\newline\rule{\linewidth}{0.4pt}
+\end{macro}
+
+\begin{macro}{NumberOfIndependentComponents}
+\verb~NumberOfIndependentComponents~ is a procedure for finding the number of independent components of a given indexed object, in a particular dimension with accompanying equations. It takes one required positional argument: the indexed object; one optional positional argument: the dimension (default: \verb~4~); and two optional arguments: equations (default: \verb~NULL~) and start dimension (default: \verb~0~). It returns an integer.
+
+As an example, consider the Christoffel symbols $\tensor{\Gamma}{_\rho_\mu_\nu}$ which are symmetric in their last two indices, in four-dimensions.
+\newline\rule{\linewidth}{0.4pt}
+\begin{verbatim}
+> NumberOfIndependentComponents(Gamma[rho,mu,nu],equations=[Gamma[rho,mu,nu]=Gamma[rho,nu,mu]])
+\end{verbatim}
+\[
+40
+\]
+\newline\rule{\linewidth}{0.4pt}
+\end{macro}
+
+\begin{macro}{ComponentRelationships}
+\verb~ComponentRelationships~ is a procedure for finding the equations relating components of a given indexed object in terms of the object's independent components, in a particular dimension with accompanying equations. It takes one required positional argument: the indexed object; one optional positional argument: the dimension (default: \verb~4~); and two optional arguments: equations (default: \verb~NULL~) and start dimension (default: \verb~0~). It returns a list. 
+
+As an example, consider the Faraday tensor $\tensor{F}{_\mu_\nu}$ which is antisymmetric in its indices:
+\newline\rule{\linewidth}{0.4pt}
+\begin{verbatim}
+> ComponentRelationships(F[mu,nu],4,equations=[F[mu,nu]=-F[nu,mu]])
+\end{verbatim}
+\begin{multline*}
+[F_{0,0} = 0, F_{0,1} = -F_{1,0}, F_{0,2} = -F_{2,0}, F_{0,3} = -F_{3,0}, \\ F_{1,1} = 0, F_{1,2} = -F_{2,1}, F_{1,3} = -F_{3,1}, F_{2,2}
+ = 0, F_{2,3} = -F_{3,2}, F_{3,3} = 0]
+\end{multline*}
+\newline\rule{\linewidth}{0.4pt}
+\end{macro}
+
+\section{Why not use \texttt{Physics} tensors for this?}
+The \verb@Physics@ package in Maple is extensive and very powerful, however, this implementation has a few advantages.
 \begin{enumerate}
-    \item Download the \verb~GraClo vN.mpl~ file.
-    \item Place the file in the Maple directory you are working in.
-    \item Open Maple.
-    \item Read the package into Maple by using \verb~ > read("GraClo.mpl")~.
-    \item To use the package, as with every Maple package, then enter \verb~ > with(GraClo)~. This will allow you to use the commands with no prefix.
+\item Smaller codebase, so easier to debug. In total the code is at most $135$-lines long. It also only uses minimal dependencies of \verb@combinat@, \verb@ArrayTools@, and \verb@GroupTheory@.
+\item Does not require the setup steps of \verb@Physics@.
+\item It recovers results \verb@Physics@ cannot.
+
+In four dimensions, the Riemann tensor $\tensor{R}{_\mu_\nu_\rho_\sigma}$ has $20$ independent components, generated by the symmetries:
+\begin{gather*}
+\tensor{R}{_\mu_\nu_\rho_\sigma} = -\tensor{R}{_\mu_\nu_\sigma_\rho}\qand  
+\tensor{R}{_\mu_\nu_\rho_\sigma} = -\tensor{R}{_\nu_\mu_\rho_\sigma} \\
+\tensor{R}{_\mu_\nu_\rho_\sigma} = \tensor{R}{_\rho_\sigma_\mu_\nu} \\
+\tensor{R}{_\mu_\nu_\rho_\sigma} + \tensor{R}{_\mu_\rho_\sigma_\nu} + \tensor{R}{_\mu_\sigma_\nu_\rho} = 0 
+\end{gather*}
+To get this number, in \verb@GraClo@:
+\newline\rule{\linewidth}{0.4pt}
+\begin{verbatim}
+> AntiSym := R[mu,nu,rho,sigma] = -R[nu,mu,rho,sigma], R[mu,nu,rho,sigma] = -R[mu,nu,sigma,rho]
+\end{verbatim}
+\[
+AntiSym := R_{\mu ,\nu ,\rho ,\sigma} =- R_{\nu ,\mu ,\rho ,\sigma},  R_{\mu ,\nu ,\rho ,\sigma} =- R_{\mu ,\nu ,\sigma ,\rho}
+\]
+\begin{verbatim}
+> SymSwap := R[mu,nu,rho,sigma] = R[rho,sigma,mu,nu] 
+\end{verbatim}
+\[
+SymSwap := R_{\mu ,\nu ,\rho ,\sigma} = R_{\rho ,\sigma ,\mu ,\nu}
+\]
+\begin{verbatim}
+> SymSum := R[mu,nu,rho,sigma] + R[mu,rho,sigma,nu] + R[mu,sigma,nu,rho] = 0 
+\end{verbatim}
+\[
+SymSum := R_{\mu ,\nu ,\rho ,\sigma}+R_{\mu ,\rho ,\sigma ,\nu}+R_{\mu ,\sigma ,\nu ,\rho} = 0
+\]
+\begin{verbatim}
+> NumberOfIndependentComponents(R[mu,nu,rho,sigma],equations=[AntiSym,SymSwap,SymSum]) 
+\end{verbatim}
+\[
+20
+\]
+\newline\rule{\linewidth}{0.4pt}
+One cannot get $20$ with \verb@Physics@ according to the \href{https://www.maplesoft.com/support/help/Maple/view.aspx?path=updates%2FMaple2018%2FPhysics}{Maple documentation}.
+\newline\rule{\linewidth}{0.4pt}
+\begin{verbatim}
+> Define(R[mu,nu,rho,sigma],symmetric={[[1,2],[3,4]]},antisymmetric={[1,2],[3,4]},
+  minimizetensorcomponents):
+> Library:-NumberOfIndependentTensorComponents(R[mu,nu,rho,sigma])
+\end{verbatim}
+\[
+21
+\]
+\newline\rule{\linewidth}{0.4pt}
 \end{enumerate}
+This is not to say one shouldn't use \verb@Physics@: indeed it is one of the most expansive packages available, and for doing any tensor calculus it is a clear recommendation. However, purely for finding relationships in symmetries, \verb@GraClo@ offers some benefit.
 
-There is an alternative to the final step: you can enter \verb~GraClo[command](...)~ or \verb~GraClo:-command(...)~.
-\section*{Ancillary Functions}
-
-\subsection*{\verb~SYM~}
-
-\verb~SYM~ is a procedure for creating a sum of permutations (symmetrising), described mathematically by
-
-\begin{equation*}
-    \Psi_{x_1 x_2 ... x_n (x_3 x_4 ... x_N)} = \frac{1}{k!} \sum_{\substack{all \, permutations \\ i_1 ... i_k}} \Psi_{x_1 x_2 ... x_n (x_{i_1} x_{i_2} ... x_{i_k})}
-\end{equation*}
-
-where in this case, $\Psi$ and its associated indices is an arbitrary tensor. Equivalently, this is equally valid for contravariant tensor components.
-
-\verb~SYM~ takes two arguments: \verb~condition~, and \verb~tenss~\footnote{It is called \verb~tenss~ because that is what I wrote at the time, so as not to confuse myself with other appearances of the word `tensor'.}. To begin with the latter, \verb~tenss~ is the tensor over which you are performing the symmetry operation. \verb~condition~ is the (you guessed it), symmetry condition, input as a list. For example, suppose we want to find the symmetry of $a,b,c$, in the tensor $\Psi_{abcd}$:
-
-\begin{verbatim}
-   > SYM([a,b,c],Psi[a,b,c,d]);
-\end{verbatim}
-\begin{equation*}
-    {\frac {\Psi_{{a,b,c,d}}}{6}}+{\frac {\Psi_{{a,c,b,d}}}{6}}+{\frac {
-\Psi_{{b,a,c,d}}}{6}}+{\frac {\Psi_{{b,c,a,d}}}{6}}+{\frac {\Psi_{{c,a
-,b,d}}}{6}}+{\frac {\Psi_{{c,b,a,d}}}{6}}
-\end{equation*}
-
-\subsection*{\verb~ASYM~}
-
-Similar to the above, \verb~ASYM~ is a procedure for finding the anti-symmetric sum of permutations, described mathematically by
-
-\begin{equation*}
-    \Psi_{x_1 x_2 ... x_n (x_3 x_4 ... x_N)} = \frac{1}{k!} \sum_{\substack{all \, permutations \\ i_1 ... i_k}} \epsilon_{i_1 i_2 ... i_k}\Psi_{x_1 x_2 ... x_n (x_{i_1} x_{i_2} ... x_{i_k})}
-\end{equation*}
-
-where $\epsilon$ is the Levi-Civita Symbol, being $1$ for even permutations, and $-1$ for odd permutations. Consider for this case, the Riemann Curvature tensor, $R_{abcd}$ with the asymmetry on $b,c,d$
-
-\begin{verbatim}
-    > ASYM([b,c,d],R[a,b,c,d])
-\end{verbatim}
-\begin{equation*}
-    {\frac {R_{{a,b,c,d}}}{6}}-{\frac {R_{{a,b,d,c}}}{6}}-{\frac {R_{{a,c,
-b,d}}}{6}}+{\frac {R_{{a,c,d,b}}}{6}}+{\frac {R_{{a,d,b,c}}}{6}}-{
-\frac {R_{{a,d,c,b}}}{6}}
-\end{equation*}
-
-As in \verb~SYM~, the condition is input as a list.
-
-\section*{Primary Functions}
-
-Each of the following functions take the same arguments: \verb~tenss~, \verb~basisEquations~, and \verb~dim~, in that order. As in the \verb~SYM~ and \verb~ASYM~ commands, \verb~tenss~ is the tensor in question (e.g., $T^{\mu \nu} \to$\verb~T[mu,nu]~). This is necessary currently to extract the rank, indices, and base. \verb~basisEquations~ takes a list of equations, written in free index form. For instance, using the Lanczos tensor's symmetries \cite{Agacy1999} as an example, they would be entered as a list as follows:
-
-\begin{verbatim}
-    > [H[a,b,c] + H[b,a,c] = 0, H[a,b,c] + H[b,c,a] + H[c,a,b] = 0]
-\end{verbatim}
-\begin{equation*}
-    [H_{{a,b,c}}+H_{{b,a,c}}=0,H_{{a,b,c}}+H_{{b,c,a}}+H_{{c,a,b}}=0]
-\end{equation*}
-or equivalently, using the symmetry commands
-\begin{verbatim}
-    > [SYM([a,b],H[a,b,c]) = 0, ASYM([a,b,c],H[a,b,c]) = 0].
-\end{verbatim}
-\begin{equation*}
-    [{\frac {H_{{a,b,c}}}{2}}+{\frac {H_{{b,a,c}}}{2}}=0,{\frac {H_{{a,b,c
-}}}{6}}-{\frac {H_{{a,c,b}}}{6}}-{\frac {H_{{b,a,c}}}{6}}+{\frac {H_{{
-b,c,a}}}{6}}+{\frac {H_{{c,a,b}}}{6}}-{\frac {H_{{c,b,a}}}{6}}=0]
-\end{equation*}
-
-\verb~dim~ is, somewhat intuitively, the dimension of the system. By default, we consider the dimensions running from $(0,1,...,\verb~dim~ -1)$. If you wish to alter this, to each of the following commands you can use the option \verb~startdim~ to set the starting dimension (i.e., \verb~startdim = 1~ would mean the dimensions run from $(1,2,...,\verb~dim~)$). Due to the limitations of \verb~convert~, this means that we require $\verb~dim~ \geq 2$: though it should be obvious that if you are in one dimension, there is only one component.
-
-If you do not input any equations into \verb~basisEquations~, but simply enter \verb~[]~, then you will be dealing with all the components of the tensor.
-
-\subsection*{\verb~IndependentComponents~}
-
-As the name would suggest, this solves for, and returns a list of the independent components of a given tensor, given the equations governing the symmetry, and the dimension. For a full worked example, let us consider finding the components of the Riemann Curvature tensor, in \textbf{five} dimensions.
-
-\begin{verbatim}
-    > with(GraClo):
-    > eqns := [R[a,b,c,d] = -R[b,a,c,d],R[a,b,c,d] = -R[a,b,d,c],
-    R[a,b,c,d] = R[c,d,a,b], ASYM([b,c,d],R[a,b,c,d]) = 0];
-\end{verbatim}
-\begin{equation*}
-\begin{split}
-   eqns :=  [R_{{a,b,c,d}}=-R_{{b,a,c,d}},R_{{a,b,c,d}}=-R_{{a,b,d,c}},R_{{a,b,c,d
-}}=R_{{c,d,a,b}}, \\ {\frac {R_{{a,b,c,d}}}{6}}-{\frac {R_{{a,b,d,c}}}{6}}
--{\frac {R_{{a,c,b,d}}}{6}}+{\frac {R_{{a,c,d,b}}}{6}}+{\frac {R_{{a,d
-,b,c}}}{6}}-{\frac {R_{{a,d,c,b}}}{6}}=0]
-\end{split}
-\end{equation*}
-\begin{verbatim}
-    > IndependentComponents(R[a,b,c,d],eqns,5);
-\end{verbatim}
-\begin{equation*}
-    \begin{split}
-& [R_{{0,2,1,0}},R_{{0,3,1,0}},R_{{0,3,2,0}},R_{{0,4,1,0}},R_{{0,4,2,0}}
-,R_{{0,4,3,0}},R_{{1,0,0,1}},R_{{1,2,1,0}},R_{{1,3,1,0}}, \\  & R_{{1,3,2,1}}
-,R_{{1,4,1,0}},R_{{1,4,2,1}},R_{{1,4,3,1}},R_{{2,0,0,2}},R_{{2,1,1,2}}
-,R_{{2,1,2,0}},R_{{2,1,3,0}},R_{{2,1,4,0}}, \\ & R_{{2,3,2,0}},R_{{2,3,2,1}}
-,R_{{2,4,2,0}},R_{{2,4,2,1}},R_{{2,4,3,2}},R_{{3,0,0,3}},R_{{3,1,1,3}}
-,R_{{3,1,2,0}},R_{{3,1,3,0}}, \\ & R_{{3,1,4,0}},R_{{3,2,2,3}},R_{{3,2,3,0}}
-,R_{{3,2,3,1}},R_{{3,2,4,0}},R_{{3,2,4,1}},R_{{3,4,3,0}},R_{{3,4,3,1}}
-,R_{{3,4,3,2}}, \\ & R_{{4,0,0,4}},R_{{4,1,1,4}},R_{{4,1,2,0}},R_{{4,1,3,0}}
-,R_{{4,1,4,0}},R_{{4,2,2,4}},R_{{4,2,3,0}},R_{{4,2,3,1}},R_{{4,2,4,0}}, \\ & 
-R_{{4,2,4,1}},R_{{4,3,3,4}},R_{{4,3,4,0}},R_{{4,3,4,1}},R_{{4,3,4,2}}
-]
-\end{split}
-\end{equation*}
-
-\subsection*{\verb~NumberOfIndependentComponents~}
-
-As (again) the name suggests, this just returns the number of independent components, if it is not necessary to know which components they are. This is the equivalent of course, of just performing \verb~nops~ or \verb~numelems~ on the list of independent components. Continuing our code from above,
-
-\begin{verbatim}
-    > NumberOfIndependentComponents(R[a,b,c,d],eqns,5);
-\end{verbatim}
-\begin{equation*}
-    50
-\end{equation*}
-
-Gratefully, this it what we expect from the Riemann tensor in five dimensions. As proven algebraically in \cite{relativity}, there are $\frac{n^2}{12}(n^2-1)$ independent components in an $n$ dimensional Riemann Curvature tensor.
-
-\subsection*{\verb~Equations~}
-
-This name is slightly more abstract, but it returns a list of the other components, in terms of the independent components. Since there are a large number of non-zero components, in this instance, I will reduce the dimension to $3$, but keep the equations the same
-
-\begin{verbatim}
-    > Equations(R[a,b,c,d],eqns,3);
-\end{verbatim}
-\begin{equation*}
-    \begin{split}
-    & [R_{{0,1,0,1}}=-R_{{1,0,0,1}},R_{{0,1,0,2}}=-R_{{0,2,1,0}},R_{{0,1,1,0
-}}=R_{{1,0,0,1}},R_{{0,1,1,2}}=-R_{{1,2,1,0}}, \\ & R_{{0,1,2,0}}=R_{{0,2,1,0
-}},R_{{0,1,2,1}}=R_{{1,2,1,0}},R_{{0,2,0,1}}=-R_{{0,2,1,0}},R_{{0,2,0,
-2}}=-R_{{2,0,0,2}}, \\ & R_{{0,2,1,2}}=R_{{2,1,2,0}},R_{{0,2,2,0}}=R_{{2,0,0
-,2}},R_{{0,2,2,1}}=-R_{{2,1,2,0}},R_{{1,0,0,2}}=R_{{0,2,1,0}}, \\ & R_{{1,0,
-1,0}}=-R_{{1,0,0,1}},R_{{1,0,1,2}}=R_{{1,2,1,0}},R_{{1,0,2,0}}=-R_{{0,
-2,1,0}}, R_{{1,0,2,1}}=-R_{{1,2,1,0}}, \\ & R_{{1,2,0,1}}=-R_{{1,2,1,0}},R_{{
-1,2,0,2}}=R_{{2,1,2,0}},R_{{1,2,1,2}}=-R_{{2,1,1,2}}, R_{{1,2,2,0}}=-R_
-{{2,1,2,0}}, \\ & R_{{1,2,2,1}}=R_{{2,1,1,2}},R_{{2,0,0,1}}=R_{{0,2,1,0}},R_
-{{2,0,1,0}}=-R_{{0,2,1,0}},R_{{2,0,1,2}}=-R_{{2,1,2,0}}, \\ & R_{{2,0,2,0}}=
--R_{{2,0,0,2}},R_{{2,0,2,1}}=R_{{2,1,2,0}},R_{{2,1,0,1}}=R_{{1,2,1,0}}
-,R_{{2,1,0,2}}=-R_{{2,1,2,0}}, \\ & R_{{2,1,1,0}}=-R_{{1,2,1,0}},R_{{2,1,2,1
-}}=-R_{{2,1,1,2}}]
-    \end{split}
-\end{equation*}
-
-In this instance, it may not have been that illustrative the usefulness of this equation, since there is only one term on each side.
-
-\section*{Limitations}
-
-\begin{itemize}
-    \item Cannot work with ODEs or PDEs (e.g., $\partial_\mu \zeta^{\mu\nu}_{\rho\kappa}$ = 0 or anything remotely like that).
-    \item There is no way to work explicitly with covariant and contravariant indices (yet).
-    \item It cannot work with components explicitly stated as functions (e.g., $\gamma^{\mu\nu}(\sigma)$) as Maple seems to always try to solve for the independent variable, even when it is specified not to.
-\end{itemize}
-
-\section*{Why not use \verb~Physics~ tensors?}
-The \verb~Physics~ package does have many useful features, and is far more advanced in terms of tensorial capability. However, this package does have limitations for independent components, due to the limited scope of the \verb~Library:-NumberOfIndependentTensorComponents~ command and the way tensors are defined. Contrast using \verb~Physics~ and \verb~GraClo~ to find the number of independent components of the Riemann curvature tensor in four dimensions.
-
-\begin{verbatim}
-    > with(Physics):
-    > Define(R[mu,nu,alpha,beta],symmetric={[[1,2],[3,4]]}, 
-    antisymmetric = {[1,2],[3,4]},minimizetensorcomponents)
-\end{verbatim}
-\begin{equation*}
-    \left\{ {\it \gamma}_{{\mu}},{\it \sigma}_{{\mu}},R_{{\alpha,\beta,
-\mu,\nu}},{\it \partial}_{{\mu}},{\it g}_{{\mu,\nu}},{\it \epsilon}_{{
-\alpha,\beta,\mu,\nu}} \right\} 
-\end{equation*}
-\begin{verbatim}
-    > Library:-NumberOfIndependentTensorComponents(R[mu,nu,alpha,beta])
-\end{verbatim}
-\begin{equation*}
-    21
-\end{equation*}
-This, as discussed above, is not the correct number of independent components for the Riemann curvature tensor in four-dimensions. Importantly, it is down to the way \verb~GraClo~ takes conditions. \verb~GraClo~ can handle any number of algebraic relationships that describe the tensor, but \verb~Physics~ currrently cannot. This is true as of Maple 2020.
-
-It is also slightly faster.
-
-\section*{Examples}
-\subsection*{Example 1: Riemann Curvature Tensor in Four-Dimensions}
-Granted this tensor has been done to death, but herein follows a fully worked example, finding the number of independent components of the four dimensional Riemann Curvature Tensor. 
-
-\begin{verbatim}
-    > read("GraClo vN.mpl"):
-    > with(GraClo):
-\end{verbatim}
-[{\it ASYM},{\it Equations},{\it IndependentComponents},{\it 
-NumberOfIndependentComponents},{\it SYM}]
-\begin{verbatim}
-    > eqns := [R[a,b,c,d] = R[c,d,a,b], R[a,b,c,d] = -R[b,a,c,d],
-    R[a,b,c,d] = -R[a,b,d,c], ASYM([b,c,d],R[a,b,c,d]) = 0]
-\end{verbatim}
-\begin{equation*}
-\begin{split}
-[R_{{a,b,c,d}}=R_{{c,d,a,b}},R_{{a,b,c,d}}=-R_{{b,a,c,d}},R_{{a,b,c,d}
-}=-R_{{a,b,d,c}},\\{\frac {R_{{a,b,c,d}}}{6}}-{\frac {R_{{a,b,d,c}}}{6}}
--{\frac {R_{{a,c,b,d}}}{6}}+{\frac {R_{{a,c,d,b}}}{6}}+{\frac {R_{{a,d
-,b,c}}}{6}}-{\frac {R_{{a,d,c,b}}}{6}}=0]    \end{split}
-\end{equation*}
-\begin{verbatim}
-    > IndependentComponents(R[a,b,c,d],eqns,4,1)
-\end{verbatim}
-\begin{equation*}
-    \begin{split}
-[R_{{1,3,2,1}},R_{{1,4,2,1}},R_{{1,4,3,1}},R_{{2,1,1,2}},R_{{2,3,2,1}}
-,R_{{2,4,2,1}},R_{{2,4,3,2}},R_{{3,1,1,3}},R_{{3,2,2,3}},R_{{3,2,3,1}}
-,\\R_{{3,2,4,1}},R_{{3,4,3,1}},R_{{3,4,3,2}},R_{{4,1,1,4}},R_{{4,2,2,4}}
-,R_{{4,2,3,1}},R_{{4,2,4,1}},R_{{4,3,3,4}},R_{{4,3,4,1}},R_{{4,3,4,2}}
-]
-\end{split}
-\end{equation*}
-
-\subsection*{Example 2: A random combination of tensors}
-\begin{verbatim}
-    > read("GraClo vN.mpl"):
-    > with(GraClo):
-    > eqns := [SYM([i,j,k],P[i,j,k]) = L[i,j,k] - L[j,k,i],ASYM([i,j],L[i,j,k]) = 0]
-\end{verbatim}
-\begin{equation*}
-    \begin{split}
-        [{\frac {P_{{i,j,k}}}{6}}+{\frac {P_{{i,k,j}}}{6}}+{\frac {P_{{j,i,k}}
-}{6}}+{\frac {P_{{j,k,i}}}{6}}+{\frac {P_{{k,i,j}}}{6}}+{\frac {P_{{k,
-j,i}}}{6}}=L_{{i,j,k}}-L_{{j,k,i}},{\frac {L_{{i,j,k}}}{2}}-{\frac {L_
-{{j,i,k}}}{2}}=0]
-    \end{split}
-\end{equation*}
-\begin{verbatim}
-    > [seq(NumberOfIndependentComponents(P[i,j,k],eqns,i),i=2...11)];
-    > [seq(NumberOfIndependentComponents(L[i,j,k],eqns,i),i=2...11)];
-\end{verbatim}
-\begin{equation*}
-    \begin{split}
-        [4,17,44,90,160,259,392,564,780,1045]\\
-[2,7,16,30,50,77,112,156,210,275]
-    \end{split}
-\end{equation*}
+\section{Limitations}
+\verb@GraClo@ has a couple of limitations, some of which may not be surmountable.
+\begin{enumerate}
+\item It does not support contravariant indices. This is not an issue for finding independent components, but it would be nice to have.
+\item \verb@NumberOfIndependentComponents@ scales poorly with both dimension and rank. Ideally, it would calculate the number of components just from the indices given, however at present it has to solve for all independent components via call to \verb@IndependentComponents@ and count the number of elements.
+\end{enumerate}
 
 \end{document}
